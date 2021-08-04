@@ -1,5 +1,12 @@
 """
-A simple script that tries to buy an amount of USDC from Pesos
+A simple script that tries to buy an amount of USDC with ARS in small chunks
+
+config.json requires the value api_key like
+{"api_key": "...."}
+
+Example buy 1000 USDC pay max 180 pesos per USD doing 100 USDC chunks:
+python buy_usdc.py config.json 1000 180 100
+
 """
 import requests
 import sys
@@ -49,10 +56,10 @@ def run(amount_to_buy, limit, chunk, config):
     print("WOOHOO DONE COMPRE: %s USDC" % total_bought)
 
 if __name__ == "__main__":
-    amount = float(sys.argv[1])
-    limit = float(sys.argv[2])
-    chunk = float(sys.argv[3])
-    config = json.load(open("config.json", "r"))
+    config = json.load(open(sys.argv[1], "r"))
+    amount = float(sys.argv[2])
+    limit = float(sys.argv[3])
+    chunk = float(sys.argv[4])
 
     print("""CONFIRM:
 Buying: %s USDC
