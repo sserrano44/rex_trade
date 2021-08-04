@@ -17,6 +17,7 @@ import ccxt
 PAIR = "USDC_ARS"
 NORMAL_WAIT = 10
 WAIT_BETWEEN_TRADES = 30
+MIN_ORDER = 10
 
 def run(amount_to_buy, limit, chunk, config):
     ripio = ccxt.ripio({'apiKey': config['api_key']})
@@ -38,6 +39,8 @@ def run(amount_to_buy, limit, chunk, config):
             continue
 
         chunk_to_buy = min(top_amount, chunk)
+        chunk_to_buy = max(chunk_to_buy, MIN_ORDER)
+
         order = ripio.create_limit_buy_order('USDC/ARS', chunk_to_buy, top_price)
         order_id = order['id']
         time.sleep(1)
