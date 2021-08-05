@@ -33,28 +33,36 @@ def run(amount_to_buy, limit, chunk, config):
 
         top_price, top_amount = orderbook['asks'][0]
         print("current top %s @ %s" % (top_amount, top_price))
-        if top_price > limit:
-            #too expensive
-            time.sleep(NORMAL_WAIT)
-            continue
+        if top_price < limit:
+            chunk_to_buy = min(top_amount, chunk)
+            chunk_to_buy = max(chunk_to_buy, MIN_ORDER)
+            price_to_buy = top_price
+        else:
+            chunk_to_buy = chunk
+            price_to_buy = limit
 
-        chunk_to_buy = min(top_amount, chunk)
-        chunk_to_buy = max(chunk_to_buy, MIN_ORDER)
-
-        order = ripio.create_limit_buy_order('USDC/ARS', chunk_to_buy, top_price)
+        order = ripio.create_limit_buy_order('USDC/ARS', chunk_to_buy, price_to_buy)
         order_id = order['id']
-        time.sleep(1)
         # order_id = '8566f8fe-1aba-49c5-8a90-80acff8a5acb'
 
-        order = ripio.fetch_order(order_id, 'USDC/ARS')
-        print(order['status'])
-        if order['status'] == "closed":
-            completed = order['amount']
-            total_bought += completed
-            print("Completed %s @ %s" % (order['amount'], top_price))
-            print("Total %s" % total_bought)
-            print()
-            time.sleep(WAIT_BETWEEN_TRADES)
+        while True:
+            order = ripio.fetch_order(order_id, 'USDC/ARS')
+            if order['status'] != "closed":
+                try:
+                    orderbook = ripio.fetch_order_book(PAIR)
+                    top_price, top_amount = orderbook['asks'][0]
+                    print("current top %s @ %s" % (top_amount, top_price))
+                except:
+                    pass
+                time.sleep(NORMAL_WAIT)
+            else:
+                completed = order['amount']
+                total_bought += completed
+                print("Completed %s @ %s" % (order['amount'], top_price))
+                print("Total %s" % total_bought)
+                print()
+                time.sleep(WAIT_BETWEEN_TRADES)
+                break
 
     print("WOOHOO DONE COMPRE: %s USDC" % total_bought)
 
