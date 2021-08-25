@@ -14,10 +14,24 @@ import time
 import json
 import ccxt
 
+from utils import retry
+
 PAIR = "USDC_ARS"
 NORMAL_WAIT = 10
 WAIT_BETWEEN_TRADES = 30
 MIN_ORDER = 10
+
+@retry(times=5, exceptions=(ccxt.errors.RequestTimeout))
+def fetch_order_book(exchange, pair):
+    return exchange.fetch_order_book(pair)
+
+@retry(times=5, exceptions=(ccxt.errors.RequestTimeout))
+def create_limit_buy_order(exchange, pair, chunk_to_buy, price_to_buy):
+    return exchange.create_limit_buy_order(pair, chunk_to_buy, price_to_buy)
+
+@retry(times=5, exceptions=(ccxt.errors.RequestTimeout))
+def fetch_order(exchange, order_id, pair):
+    return exchange.fetch_order(order_id, pair)
 
 def run(amount_to_buy, limit, chunk, config):
     ripio = ccxt.ripio({'apiKey': config['api_key']})
@@ -26,7 +40,7 @@ def run(amount_to_buy, limit, chunk, config):
     total_bought = 0
     while total_bought < amount_to_buy:
 
-        orderbook = ripio.fetch_order_book(PAIR)
+        orderbook = fetch_order_book(ripio, PAIR)
         if len(orderbook['asks']) == 0:
             time.sleep(NORMAL_WAIT)
             continue
@@ -41,15 +55,15 @@ def run(amount_to_buy, limit, chunk, config):
             chunk_to_buy = chunk
             price_to_buy = limit
 
-        order = ripio.create_limit_buy_order('USDC/ARS', chunk_to_buy, price_to_buy)
+        order = create_limit_buy_order(ripio, 'USDC/ARS', chunk_to_buy, price_to_buy)
         order_id = order['id']
         # order_id = '8566f8fe-1aba-49c5-8a90-80acff8a5acb'
 
         while True:
-            order = ripio.fetch_order(order_id, 'USDC/ARS')
+            order = fetch_order(ripio, order_id, 'USDC/ARS')
             if order['status'] != "closed":
                 try:
-                    orderbook = ripio.fetch_order_book(PAIR)
+                    orderbook = fetch_order_book(ripio, PAIR)
                     top_price, top_amount = orderbook['asks'][0]
                     print("current top %s @ %s" % (top_amount, top_price))
                 except:
